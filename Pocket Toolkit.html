@@ -1,0 +1,732 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pocket Toolkit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column. Three colour-coded tool tiles act as tabs; the open tool fills one loud panel with a white result card inside it. */
+:root {
+  --font-display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --bg: #F1EEFF;
+  --surface: #FFFFFF;
+  --ink: #15123A;
+  --muted: #55517F;
+  --line: #15123A;
+  --shadow: #15123A;
+
+  --c1: #2B4BFF;  --c1-fg: #FFFFFF;   /* convert: electric blue */
+  --c2: #D9125F;  --c2-fg: #FFFFFF;   /* split: hot pink */
+  --c3: #FFC21A;  --c3-fg: #15123A;   /* focus: sun yellow */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E0C26; --surface: #1A1740; --ink: #F1EEFF; --muted: #A8A3D6; --line: #F1EEFF; --shadow: #000000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E0C26; --surface: #1A1740; --ink: #F1EEFF; --muted: #A8A3D6; --line: #F1EEFF; --shadow: #000000;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.5 var(--font-body);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--ring, var(--ink)); outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.app { max-width: 600px; margin: 0 auto; display: grid; gap: 18px; }
+
+/* Header */
+.top { display: flex; align-items: center; gap: 14px; }
+.mark { flex: none; width: 46px; height: 46px; }
+.top h1 { margin: 0; font: 800 clamp(30px, 9vw, 40px)/1 var(--font-display); letter-spacing: -.025em; text-wrap: balance; }
+.top p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+
+/* Tabs */
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tab {
+  --t: var(--c1); --t-fg: var(--c1-fg);
+  appearance: none; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  padding: 12px; min-height: 88px; min-width: 0;
+  border: 3px solid var(--line); border-radius: 18px;
+  background: color-mix(in srgb, var(--t) 28%, var(--surface));
+  color: var(--ink);
+  transition: transform .12s, box-shadow .12s, background-color .12s;
+}
+.tab[data-tool="convert"] { --t: var(--c1); --t-fg: var(--c1-fg); }
+.tab[data-tool="split"]   { --t: var(--c2); --t-fg: var(--c2-fg); }
+.tab[data-tool="focus"]   { --t: var(--c3); --t-fg: var(--c3-fg); }
+.tab svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.tab span { font: 800 18px/1 var(--font-display); letter-spacing: -.01em; }
+.tab[aria-selected="true"] { background: var(--t); color: var(--t-fg); transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--shadow); }
+
+/* Panels */
+.panel {
+  --p: var(--c1); --p-fg: var(--c1-fg); --ring: var(--p-fg);
+  background: var(--p); color: var(--p-fg);
+  border: 3px solid var(--line); border-radius: 26px;
+  padding: 20px 18px 22px; box-shadow: 6px 6px 0 var(--shadow);
+  display: grid; gap: 18px; min-width: 0;
+}
+.panel[data-tool="split"] { --p: var(--c2); --p-fg: var(--c2-fg); }
+.panel[data-tool="focus"] { --p: var(--c3); --p-fg: var(--c3-fg); }
+.panel h2 { margin: 0; font: 800 28px/1.05 var(--font-display); letter-spacing: -.02em; }
+.panel .sub { margin: 6px 0 0; font-size: 15px; opacity: .92; }
+.lab { font: 700 13px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; }
+
+/* Chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  appearance: none; cursor: pointer; font: 700 15px/1 var(--font-body);
+  padding: 13px 16px; border-radius: 999px; background: transparent; color: var(--p-fg);
+  border: 2px solid color-mix(in srgb, var(--p-fg) 65%, transparent);
+}
+.chip[aria-pressed="true"] { background: var(--p-fg); color: var(--p); border-color: var(--p-fg); }
+
+/* Fields */
+.field {
+  width: 100%; min-width: 0; color: var(--p-fg);
+  font: 700 22px/1.1 var(--font-display);
+  background: color-mix(in srgb, var(--p-fg) 12%, transparent);
+  border: 2px solid color-mix(in srgb, var(--p-fg) 55%, transparent);
+  border-radius: 14px; padding: 14px;
+}
+.field:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+select.field { appearance: none; font: 700 17px/1.1 var(--font-body); padding-right: 34px; cursor: pointer; text-overflow: ellipsis; }
+select option { color: var(--ink); background: var(--surface); }
+.sel { position: relative; min-width: 0; }
+.sel select { height: 100%; }
+.sel::after {
+  content: ""; position: absolute; right: 15px; top: 50%; width: 8px; height: 8px;
+  border-right: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor;
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.row { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 10px; align-items: stretch; }
+.out { display: block; min-height: 56px; background: var(--p-fg); color: var(--p); border-color: var(--p-fg); overflow-wrap: anywhere; }
+.conv { display: grid; gap: 6px; }
+.swap {
+  appearance: none; cursor: pointer; justify-self: center; width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--surface); color: var(--ink); border: 3px solid var(--line);
+}
+.swap svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Cards */
+.card { background: var(--surface); color: var(--ink); border: 3px solid var(--line); border-radius: 18px; padding: 16px; min-width: 0; }
+.card h3 { margin: 0 0 12px; font: 800 17px/1.2 var(--font-display); }
+.also { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.also button {
+  appearance: none; cursor: pointer; width: 100%; text-align: left; display: grid; gap: 2px; min-width: 0;
+  padding: 10px 12px; border-radius: 12px; color: var(--ink);
+  background: color-mix(in srgb, var(--p) 12%, var(--surface));
+  border: 2px solid color-mix(in srgb, var(--ink) 22%, transparent);
+}
+.also button[aria-pressed="true"] { border-color: var(--line); background: color-mix(in srgb, var(--p) 30%, var(--surface)); }
+.also b { font: 700 15px/1.25 var(--font-mono); overflow-wrap: anywhere; }
+.also span { font-size: 13px; color: var(--muted); }
+
+/* Split */
+.group { display: grid; gap: 10px; }
+.lab-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.lab-row output { font: 800 22px/1 var(--font-display); }
+.money { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+.money .sel select { min-width: 96px; }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 32px; margin: 0; background: transparent; cursor: pointer; --fill: 33%;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 12px; border-radius: 999px;
+  background: linear-gradient(to right, var(--p-fg) var(--fill), color-mix(in srgb, var(--p-fg) 25%, transparent) var(--fill));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 30px; height: 30px; margin-top: -9px; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--line);
+}
+input[type="range"]::-moz-range-track { height: 12px; border-radius: 999px; background: color-mix(in srgb, var(--p-fg) 25%, transparent); }
+input[type="range"]::-moz-range-progress { height: 12px; border-radius: 999px; background: var(--p-fg); }
+input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--surface); border: 3px solid var(--line); }
+input[type="range"]:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; border-radius: 8px; }
+.stepper { display: flex; align-items: center; gap: 16px; }
+.round {
+  appearance: none; cursor: pointer; width: 48px; height: 48px; border-radius: 50%; border: 0;
+  font: 800 26px/1 var(--font-display); color: var(--p); background: var(--p-fg);
+}
+.round:disabled { opacity: .45; cursor: default; }
+.stepper output { font: 700 30px/1 var(--font-mono); min-width: 2.2ch; text-align: center; }
+.switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 700; position: relative; }
+.switch input { position: absolute; opacity: 0; width: 52px; height: 30px; margin: 0; left: 0; cursor: pointer; }
+.switch .track { flex: none; width: 52px; height: 30px; border-radius: 999px; border: 2px solid var(--p-fg); position: relative; transition: background-color .15s; }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--p-fg); transition: transform .15s, background-color .15s; }
+.switch input:checked + .track { background: var(--p-fg); }
+.switch input:checked + .track::after { transform: translateX(22px); background: var(--p); }
+.switch input:focus-visible + .track { outline: 3px solid var(--ring); outline-offset: 3px; }
+.result .kicker { margin: 0; font: 700 13px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.result .big { margin: 8px 0 14px; font: 800 clamp(40px, 12vw, 56px)/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.result dl { margin: 0; display: grid; gap: 8px; }
+.result dl > div { display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 2px dashed color-mix(in srgb, var(--ink) 22%, transparent); }
+.result dt { color: var(--muted); }
+.result dd { margin: 0; font: 700 16px/1.4 var(--font-mono); text-align: right; }
+
+/* Focus */
+.dial { position: relative; width: min(100%, 260px); aspect-ratio: 1; margin: 0 auto; }
+.dial svg { width: 100%; height: 100%; display: block; transform: rotate(-90deg); }
+.dial .trk { fill: none; stroke: color-mix(in srgb, var(--p-fg) 18%, transparent); stroke-width: 14; }
+.dial .prg { fill: none; stroke: var(--p-fg); stroke-width: 14; stroke-linecap: round; stroke-dasharray: 603.19; stroke-dashoffset: 0; transition: stroke-dashoffset .25s linear; }
+.dial-text { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 6px; }
+#clock { display: block; font: 700 clamp(44px, 15vw, 60px)/1 var(--font-mono); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.status { font: 600 14px/1.3 var(--font-body); max-width: 16ch; margin: 0 auto; }
+.btns { display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; }
+.btn {
+  appearance: none; cursor: pointer; font: 800 18px/1 var(--font-display); padding: 16px 18px; border-radius: 16px;
+  border: 3px solid var(--line); background: var(--surface); color: var(--ink); box-shadow: 3px 3px 0 var(--shadow);
+}
+.btn.primary { background: var(--p-fg); color: var(--p); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+.today { display: grid; gap: 8px; }
+.today-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.today-row b { font: 700 22px/1 var(--font-mono); }
+.dots { display: flex; gap: 8px; }
+.dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--p-fg); }
+.dots i.on { background: var(--p-fg); }
+.today p { margin: 0; font-size: 14px; opacity: .92; }
+
+.foot { margin: 6px 0 0; text-align: center; font-size: 13px; color: var(--muted); text-wrap: balance; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<main class="app">
+  <header class="top">
+    <svg class="mark" viewBox="0 0 46 46" aria-hidden="true">
+      <circle cx="15" cy="17" r="12" fill="var(--c1)" stroke="var(--line)" stroke-width="3"/>
+      <circle cx="31" cy="17" r="12" fill="var(--c2)" stroke="var(--line)" stroke-width="3"/>
+      <circle cx="23" cy="30" r="12" fill="var(--c3)" stroke="var(--line)" stroke-width="3"/>
+    </svg>
+    <div>
+      <h1>Pocket Toolkit</h1>
+      <p>Convert it, split it, time it.</p>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Tools">
+    <button class="tab" role="tab" type="button" id="tab-convert" data-tool="convert" aria-controls="panel-convert" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>
+      <span>Convert</span>
+    </button>
+    <button class="tab" role="tab" type="button" id="tab-split" data-tool="split" aria-controls="panel-split" aria-selected="false" tabindex="-1">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>
+      <span>Split</span>
+    </button>
+    <button class="tab" role="tab" type="button" id="tab-focus" data-tool="focus" aria-controls="panel-focus" aria-selected="false" tabindex="-1">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 2.5h5"/></svg>
+      <span>Focus</span>
+    </button>
+  </div>
+
+  <!-- Convert -->
+  <section class="panel" role="tabpanel" id="panel-convert" data-tool="convert" aria-labelledby="tab-convert">
+    <div>
+      <h2>Unit converter</h2>
+      <p class="sub">Pick a category and type a number.</p>
+    </div>
+    <div class="chips" id="cat-chips" role="group" aria-label="Category"></div>
+    <div class="conv">
+      <div class="row">
+        <div>
+          <label class="sr" for="in-val">Value to convert</label>
+          <input id="in-val" class="field num" type="text" inputmode="decimal" autocomplete="off" value="5">
+        </div>
+        <div class="sel">
+          <label class="sr" for="in-from">From unit</label>
+          <select id="in-from" class="field"></select>
+        </div>
+      </div>
+      <button class="swap" id="swap" type="button" aria-label="Swap the two units">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4"/></svg>
+      </button>
+      <div class="row">
+        <output id="out-val" class="field num out" for="in-val in-from in-to" aria-live="polite">—</output>
+        <div class="sel">
+          <label class="sr" for="in-to">To unit</label>
+          <select id="in-to" class="field"></select>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 id="conv-title">Same value in</h3>
+      <ul class="also" id="also-list"></ul>
+    </div>
+  </section>
+
+  <!-- Split -->
+  <section class="panel" role="tabpanel" id="panel-split" data-tool="split" aria-labelledby="tab-split" hidden>
+    <div>
+      <h2>Tip &amp; split</h2>
+      <p class="sub">Enter the bill, set the tip, divide it up.</p>
+    </div>
+    <div class="group">
+      <label class="lab" for="bill">Bill amount</label>
+      <div class="money">
+        <div class="sel">
+          <label class="sr" for="cur">Currency</label>
+          <select id="cur" class="field">
+            <option value="INR">₹ INR</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+        </div>
+        <input id="bill" class="field num" type="text" inputmode="decimal" autocomplete="off" value="2480">
+      </div>
+    </div>
+    <div class="group">
+      <div class="lab-row"><label class="lab" for="tip">Tip</label><output id="tip-out" for="tip">10%</output></div>
+      <input id="tip" type="range" min="0" max="30" step="1" value="10">
+      <div class="chips" id="tip-chips" role="group" aria-label="Quick tip"></div>
+    </div>
+    <div class="group">
+      <span class="lab" id="ppl-label">People</span>
+      <div class="stepper" role="group" aria-labelledby="ppl-label">
+        <button class="round" id="ppl-minus" type="button" aria-label="One fewer person">−</button>
+        <output id="ppl" for="ppl-minus ppl-plus">4</output>
+        <button class="round" id="ppl-plus" type="button" aria-label="One more person">+</button>
+      </div>
+    </div>
+    <label class="switch" for="roundup">
+      <input id="roundup" type="checkbox" role="switch">
+      <span class="track" aria-hidden="true"></span>
+      <span>Round each share up</span>
+    </label>
+    <div class="card result" aria-live="polite">
+      <p class="kicker">Each person pays</p>
+      <p class="big" id="each">—</p>
+      <dl>
+        <div><dt>Bill</dt><dd id="r-bill">—</dd></div>
+        <div><dt id="r-tip-label">Tip</dt><dd id="r-tip">—</dd></div>
+        <div id="r-round-row" hidden><dt>Rounding up</dt><dd id="r-round">—</dd></div>
+        <div><dt>Group total</dt><dd id="r-total">—</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- Focus -->
+  <section class="panel" role="tabpanel" id="panel-focus" data-tool="focus" aria-labelledby="tab-focus" hidden>
+    <div>
+      <h2>Focus timer</h2>
+      <p class="sub">Work in blocks, rest in between.</p>
+    </div>
+    <div class="chips" id="mode-chips" role="group" aria-label="Timer length"></div>
+    <div class="dial">
+      <svg viewBox="0 0 220 220" aria-hidden="true">
+        <circle class="trk" cx="110" cy="110" r="96"/>
+        <circle class="prg" id="prg" cx="110" cy="110" r="96"/>
+      </svg>
+      <div class="dial-text">
+        <output id="clock" role="timer" aria-live="off">25:00</output>
+        <p class="status" id="status">25 min block</p>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn primary" id="startpause" type="button">Start</button>
+      <button class="btn" id="reset" type="button">Reset</button>
+    </div>
+    <div class="today">
+      <div class="today-row">
+        <span class="lab">Blocks today</span>
+        <b id="count">0</b>
+        <span class="dots" id="dots" aria-hidden="true"></span>
+      </div>
+      <p>Four focus blocks earn the long break.</p>
+    </div>
+  </section>
+
+  <p class="foot">Everything runs on this page. Only today's focus count is kept on your device.</p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var TOOLS = ['convert', 'split', 'focus'];
+
+  /* ---------- Tabs ---------- */
+  function showTool(name) {
+    if (TOOLS.indexOf(name) < 0) name = 'convert';
+    TOOLS.forEach(function (t) {
+      var on = t === name;
+      var tab = $('tab-' + t);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+      $('panel-' + t).hidden = !on;
+    });
+  }
+  TOOLS.forEach(function (t, i) {
+    var tab = $('tab-' + t);
+    tab.addEventListener('click', function () {
+      location.hash = t;
+      showTool(t);
+    });
+    tab.addEventListener('keydown', function (e) {
+      var j = null;
+      if (e.key === 'ArrowRight') j = (i + 1) % TOOLS.length;
+      else if (e.key === 'ArrowLeft') j = (i + TOOLS.length - 1) % TOOLS.length;
+      else if (e.key === 'Home') j = 0;
+      else if (e.key === 'End') j = TOOLS.length - 1;
+      if (j === null) return;
+      e.preventDefault();
+      location.hash = TOOLS[j];
+      showTool(TOOLS[j]);
+      $('tab-' + TOOLS[j]).focus();
+    });
+  });
+  window.addEventListener('hashchange', function () { showTool(location.hash.slice(1)); });
+
+  function parse(str) {
+    var n = parseFloat(String(str).replace(/[,\s]/g, ''));
+    return isFinite(n) ? n : NaN;
+  }
+
+  /* ---------- Convert ---------- */
+  function U(s, n, f) {
+    return { s: s, n: n, to: function (x) { return x * f; }, from: function (b) { return b / f; } };
+  }
+  var CATS = {
+    length: {
+      label: 'Length',
+      units: [U('mm', 'millimetres', 0.001), U('cm', 'centimetres', 0.01), U('m', 'metres', 1), U('km', 'kilometres', 1000),
+              U('in', 'inches', 0.0254), U('ft', 'feet', 0.3048), U('yd', 'yards', 0.9144), U('mi', 'miles', 1609.344)],
+      def: { v: '5', from: 'mi', to: 'km' }
+    },
+    weight: {
+      label: 'Weight',
+      units: [U('mg', 'milligrams', 1e-6), U('g', 'grams', 0.001), U('kg', 'kilograms', 1),
+              U('oz', 'ounces', 0.028349523125), U('lb', 'pounds', 0.45359237), U('st', 'stone', 6.35029318)],
+      def: { v: '70', from: 'kg', to: 'lb' }
+    },
+    temp: {
+      label: 'Temperature',
+      units: [
+        { s: '°C', n: 'Celsius', to: function (x) { return x; }, from: function (b) { return b; } },
+        { s: '°F', n: 'Fahrenheit', to: function (x) { return (x - 32) * 5 / 9; }, from: function (b) { return b * 9 / 5 + 32; } },
+        { s: 'K', n: 'Kelvin', to: function (x) { return x - 273.15; }, from: function (b) { return b + 273.15; } }
+      ],
+      def: { v: '36.6', from: '°C', to: '°F' }
+    },
+    volume: {
+      label: 'Volume',
+      units: [U('mL', 'millilitres', 0.001), U('L', 'litres', 1), U('tsp', 'teaspoons (US)', 0.00492892159375),
+              U('tbsp', 'tablespoons (US)', 0.01478676478125), U('fl oz', 'fluid ounces (US)', 0.0295735295625),
+              U('cup', 'cups (US)', 0.2365882365), U('qt', 'quarts (US)', 0.946352946), U('gal', 'gallons (US)', 3.785411784)],
+      def: { v: '2', from: 'cup', to: 'mL' }
+    }
+  };
+  var ORDER = ['length', 'weight', 'temp', 'volume'];
+  var cs = { cat: 'length' };
+  ORDER.forEach(function (k) { var d = CATS[k].def; cs[k] = { v: d.v, from: d.from, to: d.to }; });
+
+  function unitOf(cat, s) {
+    var u = CATS[cat].units;
+    for (var i = 0; i < u.length; i++) if (u[i].s === s) return u[i];
+    return u[0];
+  }
+  function fmt(n) {
+    if (!isFinite(n)) return '—';
+    if (n === 0) return '0';
+    var a = Math.abs(n);
+    if (a >= 1e12 || a < 1e-6) return n.toExponential(4).replace('e+', 'e');
+    return Number(n.toPrecision(8)).toLocaleString(undefined, { maximumFractionDigits: 6 });
+  }
+
+  function renderConvert() {
+    var c = cs.cat, s = cs[c], f = unitOf(c, s.from), t = unitOf(c, s.to);
+    var x = parse(s.v), ok = !isNaN(x);
+    $('out-val').textContent = ok ? fmt(t.from(f.to(x))) : '—';
+    $('conv-title').textContent = f.n.charAt(0).toUpperCase() + f.n.slice(1) + ' → ' + t.n;
+    var ul = $('also-list');
+    ul.textContent = '';
+    CATS[c].units.forEach(function (u) {
+      if (u === f) return;
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', u === t ? 'true' : 'false');
+      var v = document.createElement('b');
+      v.textContent = ok ? fmt(u.from(f.to(x))) + ' ' + u.s : '—';
+      var n = document.createElement('span');
+      n.textContent = u.n;
+      b.appendChild(v);
+      b.appendChild(n);
+      b.addEventListener('click', function () { s.to = u.s; $('in-to').value = u.s; renderConvert(); });
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+  function fillUnits() {
+    var c = cs.cat, s = cs[c];
+    ['in-from', 'in-to'].forEach(function (id) {
+      var sel = $(id);
+      sel.textContent = '';
+      CATS[c].units.forEach(function (u) {
+        var o = document.createElement('option');
+        o.value = u.s;
+        o.textContent = u.s;
+        sel.appendChild(o);
+      });
+    });
+    $('in-from').value = s.from;
+    $('in-to').value = s.to;
+    $('in-val').value = s.v;
+  }
+  function renderCats() {
+    var box = $('cat-chips');
+    box.textContent = '';
+    ORDER.forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = CATS[k].label;
+      b.setAttribute('aria-pressed', k === cs.cat ? 'true' : 'false');
+      b.addEventListener('click', function () { cs.cat = k; renderCats(); fillUnits(); renderConvert(); });
+      box.appendChild(b);
+    });
+  }
+  $('in-val').addEventListener('input', function (e) { cs[cs.cat].v = e.target.value; renderConvert(); });
+  $('in-from').addEventListener('change', function (e) { cs[cs.cat].from = e.target.value; renderConvert(); });
+  $('in-to').addEventListener('change', function (e) { cs[cs.cat].to = e.target.value; renderConvert(); });
+  $('swap').addEventListener('click', function () {
+    var s = cs[cs.cat], tmp = s.from;
+    s.from = s.to;
+    s.to = tmp;
+    $('in-from').value = s.from;
+    $('in-to').value = s.to;
+    renderConvert();
+  });
+
+  /* ---------- Split ---------- */
+  var LOC = { INR: 'en-IN', USD: 'en-US', EUR: 'en-IE', GBP: 'en-GB' };
+  var sp = { bill: '2480', cur: 'INR', tip: 10, ppl: 4, up: false };
+  var TIPS = [0, 5, 10, 15, 20];
+
+  function money(minor) {
+    var whole = minor % 100 === 0;
+    return new Intl.NumberFormat(LOC[sp.cur], {
+      style: 'currency', currency: sp.cur,
+      minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2
+    }).format(minor / 100);
+  }
+  function renderTipChips() {
+    var box = $('tip-chips');
+    box.textContent = '';
+    TIPS.forEach(function (v) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = v + '%';
+      b.setAttribute('aria-pressed', v === sp.tip ? 'true' : 'false');
+      b.addEventListener('click', function () { sp.tip = v; renderSplit(); });
+      box.appendChild(b);
+    });
+  }
+  function renderSplit() {
+    $('tip').value = sp.tip;
+    $('tip').style.setProperty('--fill', (sp.tip / 30 * 100) + '%');
+    $('tip-out').textContent = sp.tip + '%';
+    $('ppl').textContent = sp.ppl;
+    $('ppl-minus').disabled = sp.ppl <= 1;
+    $('ppl-plus').disabled = sp.ppl >= 50;
+    $('r-tip-label').textContent = 'Tip (' + sp.tip + '%)';
+    renderTipChips();
+
+    var bill = parse(sp.bill);
+    if (isNaN(bill) || bill < 0) {
+      ['each', 'r-bill', 'r-tip', 'r-total'].forEach(function (id) { $(id).textContent = '—'; });
+      $('r-round-row').hidden = true;
+      return;
+    }
+    var billM = Math.round(bill * 100);
+    var tipM = Math.round(billM * sp.tip / 100);
+    var totalM = billM + tipM;
+    var eachM = sp.up ? Math.ceil(totalM / (sp.ppl * 100)) * 100 : Math.round(totalM / sp.ppl);
+    var paidM = sp.up ? eachM * sp.ppl : totalM;
+    var extra = paidM - totalM;
+    $('each').textContent = money(eachM);
+    $('r-bill').textContent = money(billM);
+    $('r-tip').textContent = money(tipM);
+    $('r-round-row').hidden = extra <= 0;
+    $('r-round').textContent = '+' + money(extra);
+    $('r-total').textContent = money(paidM);
+  }
+  $('bill').addEventListener('input', function (e) { sp.bill = e.target.value; renderSplit(); });
+  $('cur').addEventListener('change', function (e) { sp.cur = e.target.value; renderSplit(); });
+  $('tip').addEventListener('input', function (e) { sp.tip = parseInt(e.target.value, 10) || 0; renderSplit(); });
+  $('ppl-minus').addEventListener('click', function () { if (sp.ppl > 1) { sp.ppl--; renderSplit(); } });
+  $('ppl-plus').addEventListener('click', function () { if (sp.ppl < 50) { sp.ppl++; renderSplit(); } });
+  $('roundup').addEventListener('change', function (e) { sp.up = e.target.checked; renderSplit(); });
+
+  /* ---------- Focus ---------- */
+  var MODES = { focus: { label: 'Focus 25', min: 25 }, short: { label: 'Short break 5', min: 5 }, long: { label: 'Long break 15', min: 15 } };
+  var MODE_ORDER = ['focus', 'short', 'long'];
+  var CIRC = 603.19;
+  var mode = 'focus', total = 25 * 60000, remaining = total, running = false, endTs = 0, timerId = null;
+  var note = '', wl = null, audio = null;
+  var dayKey = 'pocket-toolkit-focus-' + new Date().toLocaleDateString('en-CA');
+
+  function loadCount() { try { return parseInt(localStorage.getItem(dayKey), 10) || 0; } catch (e) { return 0; } }
+  function saveCount(n) { try { localStorage.setItem(dayKey, String(n)); } catch (e) {} }
+  var count = loadCount();
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function statusText() {
+    if (running) return 'Ends ' + new Date(endTs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (note) return note;
+    if (remaining < total) return 'Paused';
+    return MODES[mode].min + ' min ' + (mode === 'focus' ? 'block' : 'break');
+  }
+  function renderModes() {
+    var box = $('mode-chips');
+    box.textContent = '';
+    MODE_ORDER.forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = MODES[k].label;
+      b.setAttribute('aria-pressed', k === mode ? 'true' : 'false');
+      b.addEventListener('click', function () { setMode(k); });
+      box.appendChild(b);
+    });
+  }
+  function renderDots() {
+    var inCycle = count % 4;
+    if (count > 0 && inCycle === 0) inCycle = 4;
+    var box = $('dots');
+    box.textContent = '';
+    for (var i = 0; i < 4; i++) {
+      var d = document.createElement('i');
+      if (i < inCycle) d.className = 'on';
+      box.appendChild(d);
+    }
+    $('count').textContent = count;
+  }
+  function renderTimer() {
+    var secs = Math.ceil(remaining / 1000);
+    $('clock').textContent = pad(Math.floor(secs / 60)) + ':' + pad(secs % 60);
+    var frac = total ? remaining / total : 0;
+    $('prg').style.strokeDashoffset = (CIRC * (1 - frac)).toFixed(2);
+    $('startpause').textContent = running ? 'Pause' : (remaining < total ? 'Resume' : 'Start');
+    $('status').textContent = statusText();
+  }
+  function releaseWake() {
+    try { if (wl) { wl.release(); } } catch (e) {}
+    wl = null;
+  }
+  function stopTimer() {
+    running = false;
+    if (timerId) { clearInterval(timerId); timerId = null; }
+    releaseWake();
+  }
+  function setMode(k) {
+    stopTimer();
+    mode = k;
+    total = remaining = MODES[k].min * 60000;
+    note = '';
+    renderModes();
+    renderTimer();
+  }
+  function beep() {
+    try {
+      if (!audio) return;
+      var now = audio.currentTime;
+      [784, 784, 988].forEach(function (freq, i) {
+        var o = audio.createOscillator(), g = audio.createGain(), t0 = now + i * 0.25;
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+        o.connect(g);
+        g.connect(audio.destination);
+        o.start(t0);
+        o.stop(t0 + 0.22);
+      });
+    } catch (e) {}
+  }
+  function finish() {
+    var was = mode;
+    stopTimer();
+    beep();
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+    var next, msg;
+    if (was === 'focus') {
+      count++;
+      saveCount(count);
+      renderDots();
+      next = count % 4 === 0 ? 'long' : 'short';
+      msg = 'Block done. Break is ready.';
+    } else {
+      next = 'focus';
+      msg = 'Break over. Ready to focus.';
+    }
+    mode = next;
+    total = remaining = MODES[next].min * 60000;
+    note = msg;
+    renderModes();
+    renderTimer();
+  }
+  function tick() {
+    remaining = endTs - Date.now();
+    if (remaining <= 0) { finish(); return; }
+    renderTimer();
+  }
+  function start() {
+    if (remaining <= 0) remaining = total;
+    note = '';
+    try {
+      if (!audio) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) audio = new AC(); }
+      if (audio && audio.resume) audio.resume();
+    } catch (e) {}
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(function (l) { wl = l; }).catch(function () {});
+      }
+    } catch (e) {}
+    running = true;
+    endTs = Date.now() + remaining;
+    timerId = setInterval(tick, 200);
+    renderTimer();
+  }
+  function pause() {
+    remaining = Math.max(0, endTs - Date.now());
+    stopTimer();
+    renderTimer();
+  }
+  $('startpause').addEventListener('click', function () { if (running) pause(); else start(); });
+  $('reset').addEventListener('click', function () { setMode(mode); });
+  document.addEventListener('visibilitychange', function () { if (running && !document.hidden) tick(); });
+
+  /* ---------- Boot ---------- */
+  renderCats();
+  fillUnits();
+  renderConvert();
+  renderSplit();
+  renderModes();
+  renderDots();
+  renderTimer();
+  showTool(location.hash.slice(1));
+})();
+</script>
+
+</body></html>
